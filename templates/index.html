@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Drone Telemetry Realtime</title>
+    <style>
+        body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
+        #status { font-size: 1.2rem; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h2>🛰️ Drone Telemetry Status</h2>
+    <div id="status">Đang tải dữ liệu...</div>
+
+    <script>
+        async function updateTelemetry() {
+            try {
+                const res = await fetch('/api/telemetry');
+                const data = await res.json();
+
+                if (data.length > 0) {
+                    const d = data[0];
+                    const status = `🔋 Battery: ${d.battery_level.toFixed(1)}% | 📍 Lat: ${d.latitude.toFixed(6)} | Lon: ${d.longitude.toFixed(6)} | Alt: ${d.altitude.toFixed(1)} | ✈️ In Flight: ${d.in_flight} | 🕓 Time: ${new Date(d.timestamp).toLocaleString()}`;
+                    document.getElementById('status').textContent = status;
+                } else {
+                    document.getElementById('status').textContent = "⚠️ Chưa có dữ liệu!";
+                }
+            } catch (err) {
+                document.getElementById('status').textContent = "❌ Lỗi khi tải dữ liệu.";
+                console.error(err);
+            }
+        }
+
+        setInterval(updateTelemetry, 1000);  // Cập nhật mỗi giây
+        updateTelemetry();  // Gọi lần đầu
+    </script>
+</body>
+</html>
