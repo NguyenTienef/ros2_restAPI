@@ -1,0 +1,4 @@
+flask
+pymongo
+mavsdk
+requests
