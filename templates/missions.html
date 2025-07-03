@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mission Planner</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    input, button, textarea {
+      margin: 5px;
+      padding: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: center;
+    }
+    #waypoints {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📍 Tạo Mission Mới</h2>
+
+  <form id="missionForm">
+    <label>Start Point (lat, lon):</label><br>
+    <input type="number" step="any" id="start_lat" placeholder="Latitude" required>
+    <input type="number" step="any" id="start_lon" placeholder="Longitude" required><br>
+
+    <label>End Point (lat, lon):</label><br>
+    <input type="number" step="any" id="end_lat" placeholder="Latitude" required>
+    <input type="number" step="any" id="end_lon" placeholder="Longitude" required><br>
+
+    <label>Altitude (m):</label><br>
+    <input type="number" id="altitude" value="10"><br>
+
+    <label>Waypoints:</label>
+    <div id="waypoints"></div>
+    <button type="button" onclick="addWaypoint()">➕ Add Waypoint</button><br><br>
+
+    <button type="submit">🚀 Gửi Mission</button>
+  </form>
+
+  <hr>
+
+  <h2>📋 Lịch sử Missions</h2>
+  <table id="missionTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Trạng thái</th>
+        <th>Bắt đầu</th>
+        <th>Kết thúc</th>
+        <th>Chi tiết</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let wpCount = 0;
+
+    function addWaypoint() {
+      const container = document.getElementById("waypoints");
+      const div = document.createElement("div");
+      div.innerHTML = `
+        <input type="number" step="any" placeholder="Lat" id="wp_lat_${wpCount}">
+        <input type="number" step="any" placeholder="Lon" id="wp_lon_${wpCount}">
+      `;
+      container.appendChild(div);
+      wpCount++;
+    }
+
+    document.getElementById("missionForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const start_point = {
+        lat: parseFloat(document.getElementById("start_lat").value),
+        lon: parseFloat(document.getElementById("start_lon").value)
+      };
+      const end_point = {
+        lat: parseFloat(document.getElementById("end_lat").value),
+        lon: parseFloat(document.getElementById("end_lon").value)
+      };
+
+      const altitude = parseFloat(document.getElementById("altitude").value);
+      const sequence_waypoint = [];
+
+      for (let i = 0; i < wpCount; i++) {
+        const lat = parseFloat(document.getElementById(`wp_lat_${i}`).value);
+        const lon = parseFloat(document.getElementById(`wp_lon_${i}`).value);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          sequence_waypoint.push({ lat, lon });
+        }
+      }
+
+      const missionData = {
+        start_point,
+        end_point,
+        altitude,
+        sequence_waypoint
+      };
+
+      const res = await fetch('/api/missions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(missionData)
+      });
+
+      const result = await res.json();
+      alert("✅ Đã tạo mission ID: " + result.mission_id);
+      loadMissions();
+    });
+
+    async function loadMissions() {
+      const res = await fetch('/api/missions');
+      const data = await res.json();
+      const tbody = document.querySelector("#missionTable tbody");
+      tbody.innerHTML = "";
+      data.forEach(m => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${m.id}</td>
+            <td>${m.status}</td>
+            <td>${new Date(m.created_at).toLocaleString()}</td>
+            <td>${m.finished_at ? new Date(m.finished_at).toLocaleString() : "-"}</td>
+            <td><button onclick="viewMission('${m.id}')">Xem</button></td>
+          </tr>
+        `;
+      });
+    }
+
+    async function viewMission(id) {
+      const res = await fetch(`/api/missions/${id}`);
+      const mission = await res.json();
+      alert("📌 Mission: \n" + JSON.stringify(mission, null, 2));
+    }
+
+    loadMissions();
+  </script>
+</body>
+</html>
