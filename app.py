@@ -6,18 +6,17 @@ from uuid import uuid4
 
 app = Flask(__name__)
 
-# Kết nối MongoDB
 client = MongoClient("mongodb://localhost:27017/")
 db = client["px4_data"]
 telemetry_collection = db["telemetry"]
 
-# API nhận dữ liệu từ drone (MAVSDK)
+
 @app.route('/api/telemetry', methods=['POST'])
 def save_telemetry():
     try:
         data = request.get_json()
 
-        # Validate & bổ sung timestamp
+        
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
@@ -28,7 +27,7 @@ def save_telemetry():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# API trả dữ liệu mới nhất (JSON)
+
 @app.route('/api/telemetry', methods=['GET'])
 def get_telemetry():
     try:
@@ -72,7 +71,7 @@ def create_mission():
         return jsonify({"error": str(e)}), 500
 
 
-# 2. Lấy chi tiết một mission
+
 @app.route('/api/missions/<mission_id>', methods=['GET'])
 def get_mission(mission_id):
     try:
@@ -90,7 +89,7 @@ def get_mission(mission_id):
         return jsonify({"error": str(e)}), 500
 
 
-# 3. Lấy danh sách tất cả mission (hoặc lọc theo trạng thái)
+
 @app.route('/api/missions', methods=['GET'])
 def list_missions():
     try:
@@ -110,7 +109,7 @@ def list_missions():
         return jsonify({"error": str(e)}), 500
 
 
-# 4. Cập nhật trạng thái mission
+
 @app.route('/api/missions/<mission_id>/status', methods=['PUT'])
 def update_mission_status(mission_id):
     try:
@@ -132,13 +131,21 @@ def update_mission_status(mission_id):
         return jsonify({"status": "updated"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@app.route('/api/missions/<mission_id>', methods=['DELETE'])
+def delete_mission(mission_id):
+    try:
+        result = db["missions"].delete_one({"id": mission_id})
+        if result.deleted_count == 0:
+            return jsonify({"error": "Mission not found"}), 404
+        return jsonify({"status": "deleted"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # 5. Giao diện nhập mission và xem log (optional)
 @app.route('/missions')
 def mission_page():
     return render_template("missions.html") 
-
 
 
 @app.route('/')

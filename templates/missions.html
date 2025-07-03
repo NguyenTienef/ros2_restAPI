@@ -1,3 +1,8 @@
+<nav style="margin-bottom: 20px;">
+  <button onclick="location.href='/'">🏠 Trang chính</button>
+  <button onclick="location.href='/missions'">🗺️ Quản lý Missions</button>
+</nav>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -132,7 +137,10 @@
             <td>${m.status}</td>
             <td>${new Date(m.created_at).toLocaleString()}</td>
             <td>${m.finished_at ? new Date(m.finished_at).toLocaleString() : "-"}</td>
-            <td><button onclick="viewMission('${m.id}')">Xem</button></td>
+            <td>
+            <button onclick="viewMission('${m.id}')">Xem</button>
+            <button onclick="deleteMission('${m.id}')">🗑️ Xoá</button>
+            </td>
           </tr>
         `;
       });
