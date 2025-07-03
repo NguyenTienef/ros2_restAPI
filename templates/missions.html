@@ -1,48 +1,33 @@
-<nav style="margin-bottom: 20px;">
-  <button onclick="location.href='/'">🏠 Trang chính</button>
-  <button onclick="location.href='/missions'">🗺️ Quản lý Missions</button>
-</nav>
-
+<body>
+  <h1>📡 PX4 Drone Dashboard</h1>
+  <nav>
+    <button onclick="location.href='/'">🏠 Trang chính</button>
+    <button onclick="location.href='/missions'">🗺️ Missions</button>
+    <button onclick="location.href='/goto'">📍 Go To Location</button>
+  </nav>
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Mission Planner</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
-    input, button, textarea {
-      margin: 5px;
-      padding: 5px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 30px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 6px;
-      text-align: center;
-    }
-    #waypoints {
-      margin-bottom: 10px;
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    input, button, textarea { margin: 5px; padding: 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    #waypoints { margin-bottom: 10px; }
   </style>
 </head>
 <body>
   <h2>📍 Tạo Mission Mới</h2>
-
   <form id="missionForm">
     <label>Start Point (lat, lon):</label><br>
-    <input type="number" step="any" id="start_lat" placeholder="Latitude" required>
-    <input type="number" step="any" id="start_lon" placeholder="Longitude" required><br>
+    <input type="number" step="any" id="start_lat" required>
+    <input type="number" step="any" id="start_lon" required><br>
 
     <label>End Point (lat, lon):</label><br>
-    <input type="number" step="any" id="end_lat" placeholder="Latitude" required>
-    <input type="number" step="any" id="end_lon" placeholder="Longitude" required><br>
+    <input type="number" step="any" id="end_lat" required>
+    <input type="number" step="any" id="end_lon" required><br>
 
     <label>Altitude (m):</label><br>
     <input type="number" id="altitude" value="10"><br>
@@ -55,7 +40,6 @@
   </form>
 
   <hr>
-
   <h2>📋 Lịch sử Missions</h2>
   <table id="missionTable">
     <thead>
@@ -64,7 +48,7 @@
         <th>Trạng thái</th>
         <th>Bắt đầu</th>
         <th>Kết thúc</th>
-        <th>Chi tiết</th>
+        <th>Hành động</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -72,7 +56,6 @@
 
   <script>
     let wpCount = 0;
-
     function addWaypoint() {
       const container = document.getElementById("waypoints");
       const div = document.createElement("div");
@@ -86,7 +69,6 @@
 
     document.getElementById("missionForm").addEventListener("submit", async function (e) {
       e.preventDefault();
-
       const start_point = {
         lat: parseFloat(document.getElementById("start_lat").value),
         lon: parseFloat(document.getElementById("start_lon").value)
@@ -95,31 +77,19 @@
         lat: parseFloat(document.getElementById("end_lat").value),
         lon: parseFloat(document.getElementById("end_lon").value)
       };
-
       const altitude = parseFloat(document.getElementById("altitude").value);
       const sequence_waypoint = [];
-
       for (let i = 0; i < wpCount; i++) {
         const lat = parseFloat(document.getElementById(`wp_lat_${i}`).value);
         const lon = parseFloat(document.getElementById(`wp_lon_${i}`).value);
-        if (!isNaN(lat) && !isNaN(lon)) {
-          sequence_waypoint.push({ lat, lon });
-        }
+        if (!isNaN(lat) && !isNaN(lon)) sequence_waypoint.push({ lat, lon });
       }
-
-      const missionData = {
-        start_point,
-        end_point,
-        altitude,
-        sequence_waypoint
-      };
 
       const res = await fetch('/api/missions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(missionData)
+        body: JSON.stringify({ start_point, end_point, altitude, sequence_waypoint })
       });
-
       const result = await res.json();
       alert("✅ Đã tạo mission ID: " + result.mission_id);
       loadMissions();
@@ -138,18 +108,27 @@
             <td>${new Date(m.created_at).toLocaleString()}</td>
             <td>${m.finished_at ? new Date(m.finished_at).toLocaleString() : "-"}</td>
             <td>
-            <button onclick="viewMission('${m.id}')">Xem</button>
-            <button onclick="deleteMission('${m.id}')">🗑️ Xoá</button>
+              <button onclick="startMission('${m.id}')">▶️ Start</button>
+              <button onclick="deleteMission('${m.id}')">🗑️ Xoá</button>
             </td>
           </tr>
         `;
       });
     }
 
-    async function viewMission(id) {
-      const res = await fetch(`/api/missions/${id}`);
-      const mission = await res.json();
-      alert("📌 Mission: \n" + JSON.stringify(mission, null, 2));
+    async function startMission(id) {
+      const res = await fetch(`/api/missions/${id}/start`, { method: 'POST' });
+      const result = await res.json();
+      alert(result.status || result.error);
+    }
+
+    async function deleteMission(id) {
+      if (confirm("Bạn có chắc muốn xoá mission này?")) {
+        const res = await fetch(`/api/missions/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        alert(result.status || result.error);
+        loadMissions();
+      }
     }
 
     loadMissions();

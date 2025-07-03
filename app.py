@@ -15,15 +15,56 @@ telemetry_collection = db["telemetry"]
 def save_telemetry():
     try:
         data = request.get_json()
-
-        
-        if not data:
-            return jsonify({"error": "No data provided"}), 400
-
         data['timestamp'] = datetime.utcnow()
-        telemetry_collection.insert_one(data)
+        db.telemetry.insert_one(data)
         return jsonify({"status": "saved"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+@app.route('/api/telemetry/current', methods=['GET'])
+def get_current_telemetry():
+    try:
+        latest = db.telemetry.find().sort("timestamp", -1).limit(1)
+        for t in latest:
+            t['_id'] = str(t['_id'])
+            t['timestamp'] = t['timestamp'].isoformat()
+            return jsonify(t)
+        return jsonify({"error": "No telemetry data found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
+@app.route('/api/telemetry/history', methods=['GET'])
+def get_telemetry_history():
+    try:
+        records = db.telemetry.find().sort("timestamp", -1).limit(50)
+        result = []
+        for r in records:
+            r['_id'] = str(r['_id'])
+            r['timestamp'] = r['timestamp'].isoformat()
+            result.append(r)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+@app.route('/api/telemetry/arm', methods=['POST'])
+def arm_drone():
+    async def arm():
+        drone = System()
+        await drone.connect(system_address="udp://:14540")
+        await drone.action.arm()
+    try:
+        asyncio.run(arm())
+        return jsonify({"status": "armed"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+# This endpoint is used to disarm the drone
+@app.route('/api/telemetry/disarm', methods=['POST'])
+def disarm_drone():
+    async def disarm():
+        drone = System()
+        await drone.connect(system_address="udp://:14540")
+        await drone.action.disarm()
+    try:
+        asyncio.run(disarm())
+        return jsonify({"status": "disarmed"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

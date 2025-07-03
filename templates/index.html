@@ -1,43 +1,62 @@
-<nav style="margin-bottom: 20px;">
-  <button onclick="location.href='/'">🏠 Trang chính</button>
-  <button onclick="location.href='/missions'">🗺️ Quản lý Missions</button>
-</nav>
-
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Drone Telemetry Realtime</title>
-    <style>
-        body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
-        #status { font-size: 1.2rem; white-space: pre-wrap; }
-    </style>
+  <meta charset="UTF-8">
+  <title>PX4 Drone Dashboard</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    button { margin: 5px; padding: 10px; }
+    .card { padding: 10px; border: 1px solid #ccc; border-radius: 6px; width: 400px; margin-bottom: 20px; }
+  </style>
 </head>
 <body>
-    <h2>🛰️ Drone Telemetry Status</h2>
-    <div id="status">Đang tải dữ liệu...</div>
+  <h1>📡 PX4 Drone Dashboard</h1>
+  <nav>
+    <button onclick="location.href='/'">🏠 Trang chính</button>
+    <button onclick="location.href='/missions'">🗺️ Missions</button>
+    <button onclick="location.href='/goto'">📍 Go To Location</button>
+  </nav>
 
-    <script>
-        async function updateTelemetry() {
-            try {
-                const res = await fetch('/api/telemetry');
-                const data = await res.json();
+  <div class="card">
+    <h3>📊 Telemetry Realtime</h3>
+    <div id="telemetry">Đang tải...</div>
+  </div>
 
-                if (data.length > 0) {
-                    const d = data[0];
-                    const status = `🔋 Battery: ${d.battery_level.toFixed(1)}% | 📍 Lat: ${d.latitude.toFixed(6)} | Lon: ${d.longitude.toFixed(6)} | Alt: ${d.altitude.toFixed(1)} | ✈️ In Flight: ${d.in_flight} | 🕓 Time: ${new Date(d.timestamp).toLocaleString()}`;
-                    document.getElementById('status').textContent = status;
-                } else {
-                    document.getElementById('status').textContent = "⚠️ Chưa có dữ liệu!";
-                }
-            } catch (err) {
-                document.getElementById('status').textContent = "❌ Lỗi khi tải dữ liệu.";
-                console.error(err);
-            }
-        }
+  <div class="card">
+    <h3>🎮 Điều khiển nhanh</h3>
+    <button onclick="sendCommand('/api/telemetry/arm')">🔒 Arm</button>
+    <button onclick="sendCommand('/api/telemetry/disarm')">🔓 Disarm</button>
+    <button onclick="sendCommand('/api/telemetry/takeoff')">🛫 Takeoff</button>
+    <button onclick="sendCommand('/api/telemetry/land')">🛬 Land</button>
+  </div>
 
-        setInterval(updateTelemetry, 1000);  // Cập nhật mỗi giây
-        updateTelemetry();  // Gọi lần đầu
-    </script>
+  <script>
+    async function loadTelemetry() {
+      const res = await fetch("/api/telemetry/current");
+      const data = await res.json();
+      if (!data.error) {
+        document.getElementById("telemetry").innerHTML = `
+          <p>🔋 Battery: <b>${data.battery_level}%</b></p>
+          <p>📍 Vị trí: <b>${data.latitude}, ${data.longitude}</b></p>
+          <p>📏 Altitude: <b>${data.altitude} m</b></p>
+          <p>💨 Ground Speed: <b>${data.ground_speed} m/s</b></p>
+          <p>🧭 Heading: <b>${data.heading}°</b></p>
+          <p>🧠 Flight Mode: <b>${data.flight_mode}</b></p>
+          <p>🛡️ Armed: <b>${data.is_armed}</b></p>
+          <p>✈️ In Flight: <b>${data.in_flight}</b></p>
+        `;
+      } else {
+        document.getElementById("telemetry").innerText = "Không lấy được dữ liệu.";
+      }
+    }
+
+    async function sendCommand(endpoint) {
+      const res = await fetch(endpoint, { method: 'POST' });
+      const data = await res.json();
+      alert(data.status || data.error);
+    }
+
+    setInterval(loadTelemetry, 1000);
+  </script>
 </body>
 </html>
